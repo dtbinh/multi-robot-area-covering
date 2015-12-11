@@ -1,4 +1,4 @@
-// SLAVE1 start from the left hand side
+// SLAVE2 start from the right hand side
 
 #include "mbed.h"
 #include "MRF24J40.h"
@@ -31,14 +31,14 @@ float d_forward;
 //float d_backward;
 
 int dir = 1; 
-int x = 0;
+int x = 7;
 int y = 0;
 int i = 0;
 int back_count = 0;
 int work_count = 0;
 bool turn = false;
 
-int stop_x = 3;
+int stop_x = 2;
 int stop_y = 2;
 
 bool just_work = false; // just for testing
@@ -99,7 +99,7 @@ void flip(){
     
         slave.locate(0,1);
         slave.printf("x=%d; y=%d;", x, y); 
-        sprintf(txBuffer, "Robo1: x:%d, y:%d, dir:%d, desired: %.2f\n", x, y, dir, d_desired);
+        sprintf(txBuffer, "Robo2: x:%d, y:%d, dir:%d, desired: %.2f\n", x, y, dir, d_desired);
         rf_send(txBuffer, strlen(txBuffer) + 1);
         
       }else if(y>row){
@@ -107,7 +107,7 @@ void flip(){
       }else if(y<row){
         y = 0;    
       }
-      if(x == final_x && y == final_y){
+      /*if(x == final_x && y == final_y){
         wait_ms(500);
         slave.stop();
         led1 = 1;
@@ -116,7 +116,7 @@ void flip(){
         led4 = 1;
         wait(3.0);
         zig = false;  
-       }
+       }*/
     }
     if(back_charge){
         back_count++;
@@ -313,27 +313,27 @@ void zigzag(){
             return; 
         }
         
-        if(dir==0){ //turn left
-            led1 = 1;
-            turn_left();
-            slave.forward(speed);
-            wait_ms(395);
-            turn_left();    
-            led1 = 0;
-            d_desired = d_forward;
-        }
-    
-        if(dir==1){ //turn right
+        if(dir==0){ //turn right
             led4 = 1;
             turn_right();
             slave.forward(speed);
             wait_ms(405);
             turn_right();    
             led4 = 0;
+            d_desired = d_forward;
+        }
+    
+        if(dir==1){ //turn right
+            led1 = 1;
+            turn_left();
+            slave.forward(speed);
+            wait_ms(395);
+            turn_left();    
+            led1 = 0;
             d_desired = d_backward;
         }
     
-        x++;
+        x--;
         dir = !dir;
         turn = false;
         
@@ -487,7 +487,7 @@ int main (void){
     slave.locate(0,0);
     slave.printf("h: %.2f", d_forward);
     slave.locate(0,1);
-    slave.printf("No.1 Ready!");
+    slave.printf("No.2 Ready!");
     wait(1.0);
     slave.cls();
     
@@ -514,9 +514,9 @@ int main (void){
                 if(rxBuffer[0]=='R'){
                 sscanf(rxBuffer, "Robo%d and Robo%d Work: %d,%d and %d,%d\r\n", &robo1, &robo2, &final_x1, &final_y1, &final_x2, &final_y2);
                 
-                if(robo1==1){
-                    final_x = final_x1;
-                    final_y = final_y1;
+                if(robo2==2){
+                    final_x = final_x2;
+                    final_y = final_y2;
                     work = true;
                 }else{
                     charge = true;    
@@ -530,7 +530,7 @@ int main (void){
         bat = slave.battery();
         printf("thres: %.2f V\n", bat_thres);
         printf("battery: %.2f V\n", bat);
-         
+        
         if(x==final_x && y==final_y){
                     slave.stop();
                     led1 = 1;
@@ -539,7 +539,7 @@ int main (void){
                     led4 = 1;
                     wait(3.0);
                     break;    
-        } 
+        }
            
         if(work){
                
@@ -571,7 +571,7 @@ int main (void){
                 wait_ms(100);
                 while(1){
                     rxLen = rf_receive(rxBuffer, 128);
-                    if(rxLen>0 && strcmp(rxBuffer,"Charge1")==0){
+                    if(rxLen>0 && strcmp(rxBuffer,"Charge2")==0){
                         led2 = 0;
                         led3 = 0;
                         break;   
@@ -595,7 +595,7 @@ int main (void){
                 if(rxBuffer[0]=='R'){
                     sscanf(rxBuffer, "Robo%d Work: %d,%d\r\n", &robo, &des_x, &des_y);
                 
-                    if(robo==1){
+                    if(robo==2){
                         led1 = 0;
                         led4 = 0;
                         wait_ms(500);

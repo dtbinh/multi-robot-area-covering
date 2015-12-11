@@ -1,4 +1,4 @@
-// SLAVE1 start from the left hand side
+// SLAVE3 waits at charging area at the beginning
 
 #include "mbed.h"
 #include "MRF24J40.h"
@@ -38,7 +38,7 @@ int back_count = 0;
 int work_count = 0;
 bool turn = false;
 
-int stop_x = 3;
+int stop_x = 2;
 int stop_y = 2;
 
 bool just_work = false; // just for testing
@@ -99,7 +99,7 @@ void flip(){
     
         slave.locate(0,1);
         slave.printf("x=%d; y=%d;", x, y); 
-        sprintf(txBuffer, "Robo1: x:%d, y:%d, dir:%d, desired: %.2f\n", x, y, dir, d_desired);
+        sprintf(txBuffer, "Robo3: x:%d, y:%d, dir:%d, desired: %.2f\n", x, y, dir, d_desired);
         rf_send(txBuffer, strlen(txBuffer) + 1);
         
       }else if(y>row){
@@ -109,13 +109,7 @@ void flip(){
       }
       if(x == final_x && y == final_y){
         wait_ms(500);
-        slave.stop();
-        led1 = 1;
-        led2 = 1;
-        led3 = 1;
-        led4 = 1;
-        wait(3.0);
-        zig = false;  
+        slave.stop();  
        }
     }
     if(back_charge){
@@ -308,11 +302,6 @@ void zigzag(){
         slave.forward(speed);
         wait_ms(800);
         
-        if(x == final_x && y == final_y){
-            zig = false;
-            return; 
-        }
-        
         if(dir==0){ //turn left
             led1 = 1;
             turn_left();
@@ -487,7 +476,7 @@ int main (void){
     slave.locate(0,0);
     slave.printf("h: %.2f", d_forward);
     slave.locate(0,1);
-    slave.printf("No.1 Ready!");
+    slave.printf("No.3 Ready!");
     wait(1.0);
     slave.cls();
     
@@ -512,52 +501,34 @@ int main (void){
             rxLen = rf_receive(rxBuffer, 128);
             if(rxLen>0){    
                 if(rxBuffer[0]=='R'){
-                sscanf(rxBuffer, "Robo%d and Robo%d Work: %d,%d and %d,%d\r\n", &robo1, &robo2, &final_x1, &final_y1, &final_x2, &final_y2);
+                    sscanf(rxBuffer, "Robo%d and Robo%d Work: %d,%d and %d,%d\r\n", &robo1, &robo2, &final_x1, &final_y1, &final_x2, &final_y2);
                 
-                if(robo1==1){
-                    final_x = final_x1;
-                    final_y = final_y1;
-                    work = true;
-                }else{
-                    charge = true;    
-                }
-                break;
+                    if(robo1==3 || robo2 == 3){
+                        work = true;
+                    }else{
+                        charge = true;    
+                    }
+                    break;
                 }
             }
     }
-    
+
     while(1) {
         bat = slave.battery();
         printf("thres: %.2f V\n", bat_thres);
         printf("battery: %.2f V\n", bat);
-         
-        if(x==final_x && y==final_y){
-                    slave.stop();
-                    led1 = 1;
-                    led2 = 1;
-                    led3 = 1;
-                    led4 = 1;
-                    wait(3.0);
-                    break;    
-        } 
+        led1 = 1;
+        led2 = 1;
+        led3 = 1;
+        led4 = 1;
            
         if(work){
                
                 while(1){
                     zigzag();
-                    if((x==stop_x && y==stop_y) || (x==final_x && y==final_y)){
+                    if(x==stop_x && y==stop_y){
                         break;    
                     }
-                }
-                
-                if(x==final_x && y==final_y){
-                    slave.stop();
-                    led1 = 1;
-                    led2 = 1;
-                    led3 = 1;
-                    led4 = 1;
-                    wait(3.0);
-                    break;    
                 }
                 
                 slave.stop();
@@ -565,13 +536,13 @@ int main (void){
                 slave.printf("TIRED!");
                 led2 = 1;
                 led3 = 1; 
-                sprintf(txBuffer, "Low1:%d,%d Des:%d,%d\r\n", x, y, final_x, final_y);
+                sprintf(txBuffer, "Low3:%d,%d\r\n", x, y);
                 rf_send(txBuffer, strlen(txBuffer) + 1);
                 pc.printf("Sent: %s\r\n", txBuffer);
                 wait_ms(100);
                 while(1){
                     rxLen = rf_receive(rxBuffer, 128);
-                    if(rxLen>0 && strcmp(rxBuffer,"Charge1")==0){
+                    if(rxLen>0 && strcmp(rxBuffer,"Charge3")==0){
                         led2 = 0;
                         led3 = 0;
                         break;   
@@ -590,12 +561,14 @@ int main (void){
             y = charge_y;
             led1 = 1;
             led4 = 1;
+            led2 = 0;
+            led3 = 0;
             while(1){
                 rxLen = rf_receive(rxBuffer, 128);  
                 if(rxBuffer[0]=='R'){
-                    sscanf(rxBuffer, "Robo%d Work: %d,%d\r\n", &robo, &des_x, &des_y);
+                    sscanf(rxBuffer, "Robo%d Work: %d,%d Des: %d,%d\r\n", &robo, &des_x, &des_y, &final_x, &final_y);
                 
-                    if(robo==1){
+                    if(robo==3){
                         led1 = 0;
                         led4 = 0;
                         wait_ms(500);
@@ -612,7 +585,4 @@ int main (void){
             slave.stop();   
         }                        
     }
-    slave.forward(speed);
-    wait_ms(2000);
-    slave.stop();
 }
